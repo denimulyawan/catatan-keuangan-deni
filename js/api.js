@@ -6,8 +6,9 @@
    ---------------------------------------------------------
    Cara kerja:
    - Semua permintaan dikirim sebagai POST JSON:
-       { "action": "getTransaksi" | "getBudget" | "tambahTransaksi"
-                  | "editTransaksi" | "hapusTransaksi" | "setBudget",
+       { "action": "getTransaksi" | "getBudget" | "getDompet"
+                  | "tambahTransaksi" | "editTransaksi" | "hapusTransaksi"
+                  | "setBudget" | "tambahDompet" | "editDompet" | "hapusDompet",
          "data": {...}, "rowIndex": ... }
    - Backend (file apps-script/Code.gs) membaca action tsb lalu
      membaca/menulis Google Sheets, kemudian membalas JSON:
@@ -49,7 +50,8 @@ async function kirimKeApi(payload) {
 
 /** Ambil SEMUA transaksi dari sheet Transaksi.
  *  @returns Promise<Array> berisi objek:
- *   { rowIndex, tanggal:"YYYY-MM-DD", kategori, deskripsi, nominal, tipe } */
+ *   { rowIndex, tanggal:"YYYY-MM-DD", kategori, deskripsi, nominal,
+ *     tipe:"Pemasukan|Pengeluaran|Transfer", dompet, dompetTujuan } */
 async function getTransaksi() {
   const hasil = await kirimKeApi({ action: 'getTransaksi' });
   return normalisasiDaftar(hasil);
@@ -93,4 +95,29 @@ async function hapusTransaksi(rowIndex) {
  *  @param data { bulan:"YYYY-MM", kategori, anggaran } */
 async function setBudget(data) {
   return kirimKeApi({ action: 'setBudget', data: data });
+}
+
+/* ---------------- Dompet / rekening ---------------- */
+
+/** Ambil SEMUA dompet dari sheet Dompet.
+ *  @returns Promise<Array> berisi objek: { rowIndex, nama, saldoAwal } */
+async function getDompet() {
+  const hasil = await kirimKeApi({ action: 'getDompet' });
+  return normalisasiDaftar(hasil);
+}
+
+/** Tambah dompet baru. @param data { nama, saldoAwal } */
+async function tambahDompet(data) {
+  return kirimKeApi({ action: 'tambahDompet', data: data });
+}
+
+/** Ubah nama/saldo awal dompet (referensi transaksi ikut diperbarui).
+ *  @param data { rowIndex, nama, saldoAwal } */
+async function editDompet(data) {
+  return kirimKeApi({ action: 'editDompet', data: data });
+}
+
+/** Hapus dompet (ditolak bila masih dipakai transaksi). */
+async function hapusDompet(rowIndex) {
+  return kirimKeApi({ action: 'hapusDompet', rowIndex: rowIndex });
 }

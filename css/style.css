@@ -385,3 +385,72 @@ tr.baris:hover td { background: #f8fafc; }
   animation: putar 0.7s linear infinite;
 }
 @keyframes putar { to { transform: rotate(360deg); } }
+
+/* =========================================================
+   Fitur Dompet / Transfer (tambahan)
+   ========================================================= */
+
+/* Segmen tipe 3 pilihan (Pemasukan / Pengeluaran / Transfer) */
+.segmen-tipe.tiga { grid-template-columns: 1fr 1fr 1fr; }
+.segmen-tipe input:checked + .pil-tipe { border-color: var(--hijau); background: var(--hijau-muda); color: #14532d; }
+#tipe-transfer:checked + .pil-tipe,
+.segmen-tipe input[value="Transfer"]:checked + .pil-tipe {
+  border-color: var(--biru); background: #dbeafe; color: #1e3a8a;
+}
+.tanda-transfer { color: var(--biru); font-weight: 800; }
+
+/* Label dompet kecil di entri daftar / riwayat */
+.tag-dompet {
+  display: inline-block; font-size: 0.68rem; font-weight: 600; color: #334155;
+  background: #f1f5f9; border: 1px solid var(--garis);
+  padding: 1px 7px; border-radius: 999px; margin-left: 6px; vertical-align: 1px;
+}
+
+/* Badge & nominal transfer */
+.badge-transfer { background: #dbeafe; color: #1e40af; }
+.nominal-transfer { color: var(--biru); font-weight: 700; white-space: nowrap; }
+.panah-transfer { color: var(--teks-2); font-weight: 400; }
+
+/* Filter dompet & tombol kelola di dashboard */
+.baris-filter-dompet {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  flex-wrap: wrap; margin-top: 10px; padding-top: 10px;
+  border-top: 1px dashed var(--garis);
+}
+.baris-filter-dompet .label-grup { margin: 0; font-size: 0.8rem; }
+.baris-filter-dompet select { width: auto; min-width: 160px; padding: 8px 10px; }
+
+/* Kartu saldo dompet */
+#kartu-saldo-dompet .card-judul { margin-bottom: 10px; }
+.dompet-chip-wrap { display: flex; flex-wrap: wrap; gap: 8px; }
+.dompet-chip {
+  display: inline-flex; flex-direction: column; gap: 1px;
+  background: #f8fafc; border: 1px solid var(--garis); border-radius: 14px;
+  padding: 8px 14px; min-width: 132px;
+}
+.dompet-chip.total { background: var(--primer-muda); border-color: #a7f3d0; }
+.dompet-chip .chip-nama { font-size: 0.72rem; font-weight: 700; color: var(--teks-2); }
+.dompet-chip .chip-nilai { font-size: 0.95rem; font-weight: 800; }
+.dompet-chip.total .chip-nama { color: var(--primer-gelap); }
+.dompet-chip.total .chip-nilai { color: var(--primer-gelap); }
+
+/* Modal kelola dompet */
+.kelola-tambah { display: grid; gap: 8px; margin-bottom: 6px; }
+.kelola-tambah .btn { justify-self: start; }
+.kecil-grup .grup-prefix { font-size: 0.8rem; left: 12px; }
+.kecil-grup .kontrol-prefix { padding-left: 34px; }
+.kelola-catatan { margin: 2px 0 10px; }
+.kelola-baris {
+  display: grid; grid-template-columns: 1fr 1fr auto auto; gap: 8px;
+  align-items: center; padding: 8px 0; border-bottom: 1px solid #f1f5f9;
+}
+.kelola-baris:last-child { border-bottom: 0; }
+.kelola-baris .form-kontrol { padding: 8px 10px; font-size: 0.88rem; }
+.kelola-baris .btn { white-space: nowrap; }
+@media (max-width: 460px) {
+  .kelola-baris { grid-template-columns: 1fr 1fr; }
+  .kelola-baris .btn { grid-column: span 1; }
+}
+
+/* Kolom dompet di tabel Data */
+.td-dompet { white-space: nowrap; color: #334155; font-size: 0.8rem; }

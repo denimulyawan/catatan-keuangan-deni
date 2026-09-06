@@ -2,30 +2,34 @@
  *  CATATAN KEUANGAN — Backend Google Apps Script
  *  ----------------------------------------------------------------
  *  CARA PASANG:
- *  1. Buka Google Sheet Anda (yang berisi sheet "Transaksi" & "Budget")
+ *  1. Buka Google Sheet Anda (yang berisi sheet "Transaksi", "Budget")
  *  2. Menu: Ekstensi (Extensions) → Apps Script
  *  3. Hapus semua kode lama di editor, tempel seluruh isi file ini
  *  4. Klik tombol Simpan (💾)
- *  5. Klik Deploy → New deployment → pilih jenis "Web app"
- *     - Description: terserah (mis. "Catatan Keuangan v1")
- *     - Execute as: Me (akun Anda)
- *     - Who has access: Anyone
- *  6. Klik Deploy, lalu izinkan akses ke spreadsheet Anda.
- *  7. Salin URL /exec yang muncul → pastikan SAMA dengan API_URL
- *     di file js/api.js proyek website Anda.
+ *  5. Buka Deploy → Manage deployments → ✏️ Edit → Version: New version
+ *     → Deploy (biar URL /exec tetap sama)
+ *     atau Deploy → New deployment → Web app
+ *     (Execute as: Me | Who has access: Anyone)
+ *  6. Pastikan URL /exec di js/api.js cocok dengan deployment aktif.
  *
- *  Sheet yang dibutuhkan (dibuat otomatis bila belum ada):
- *  - "Transaksi" kolom: A=Tanggal(YYYY-MM-DD) B=Kategori
- *                       C=Deskripsi D=Nominal E=Tipe(Pemasukan/Pengeluaran)
- *  - "Budget" kolom:    A=Bulan(YYYY-MM) B=Kategori C=Anggaran
+ *  SHEET (dibuat/dirapikan otomatis oleh fungsi pastikanStruktur):
+ *  - "Transaksi" kolom:
+ *      A=Tanggal(YYYY-MM-DD) B=Kategori C=Deskripsi D=Nominal
+ *      E=Tipe(Pemasukan/Pengeluaran/Transfer) F=Dompet G=Dompet Tujuan
+ *  - "Budget" kolom: A=Bulan(YYYY-MM) B=Kategori C=Anggaran
+ *  - "Dompet" kolom: A=Nama B=Saldo Awal  (baris 2 dst = daftar dompet)
  ********************************************************************/
 
 var NAMA_SHEET_TRANSAKSI = 'Transaksi';
 var NAMA_SHEET_BUDGET = 'Budget';
-var JUMLAH_KOLOM_TRANSAKSI = 5;
+var NAMA_SHEET_DOMPET = 'Dompet';
+var JUMLAH_KOLOM_TRANSAKSI = 7;
 var JUMLAH_KOLOM_BUDGET = 3;
-var HEADER_TRANSAKSI = ['Tanggal', 'Kategori', 'Deskripsi', 'Nominal', 'Tipe'];
+var JUMLAH_KOLOM_DOMPET = 2;
+var HEADER_TRANSAKSI = ['Tanggal', 'Kategori', 'Deskripsi', 'Nominal', 'Tipe', 'Dompet', 'Dompet Tujuan'];
 var HEADER_BUDGET = ['Bulan', 'Kategori', 'Anggaran'];
+var HEADER_DOMPET = ['Nama', 'Saldo Awal'];
+var DOMPET_BAWAAN = 'Tunai';
 
 /* ---------------- Titik masuk web app ---------------- */
 
@@ -48,6 +52,8 @@ function doPost(e) {
       hasil = { status: 'success', data: bacaSemuaTransaksi(ss) };
     } else if (action === 'getBudget') {
       hasil = { status: 'success', data: bacaSemuaBudget(ss) };
+    } else if (action === 'getDompet') {
+      hasil = { status: 'success', data: bacaSemuaDompet(ss) };
     } else if (action === 'tambahTransaksi') {
       hasil = tambahTransaksi(ss, payload.data);
     } else if (action === 'editTransaksi') {
@@ -56,6 +62,12 @@ function doPost(e) {
       hasil = hapusTransaksi(ss, Number(payload.rowIndex));
     } else if (action === 'setBudget') {
       hasil = setBudget(ss, payload.data);
+    } else if (action === 'tambahDompet') {
+      hasil = tambahDompet(ss, payload.data);
+    } else if (action === 'editDompet') {
+      hasil = editDompet(ss, payload.data);
+    } else if (action === 'hapusDompet') {
+      hasil = hapusDompet(ss, Number(payload.rowIndex));
     } else {
       hasil = { status: 'error', message: 'Action tidak dikenal: ' + action };
     }
@@ -101,32 +113,121 @@ function teksTanggal(x) {
   return String(x || '').slice(0, 10);
 }
 
-/** Buat sheet + header bila belum ada (aman dijalankan berulang kali). */
+function bersih(x) {
+  return String(x === null || x === undefined ? '' : x).trim();
+}
+
+/* ---------------- Struktur sheet ---------------- */
+
+/** Buat/rapikan sheet + header + migrasi data lama (aman diulang). */
 function pastikanStruktur(ss) {
+  // --- Sheet Transaksi ---
   var shTrx = ss.getSheetByName(NAMA_SHEET_TRANSAKSI);
   if (!shTrx) shTrx = ss.insertSheet(NAMA_SHEET_TRANSAKSI);
   if (shTrx.getLastRow() === 0) {
     shTrx.getRange(1, 1, 1, JUMLAH_KOLOM_TRANSAKSI).setValues([HEADER_TRANSAKSI]);
     shTrx.setFrozenRows(1);
   }
+  // Header kolom tambahan Dompet & Dompet Tujuan (kalau belum ada)
+  if (bersih(shTrx.getRange(1, 6).getValue()) === '') shTrx.getRange(1, 6).setValue('Dompet');
+  if (bersih(shTrx.getRange(1, 7).getValue()) === '') shTrx.getRange(1, 7).setValue('Dompet Tujuan');
 
+  // --- Sheet Budget ---
   var shBg = ss.getSheetByName(NAMA_SHEET_BUDGET);
   if (!shBg) shBg = ss.insertSheet(NAMA_SHEET_BUDGET);
   if (shBg.getLastRow() === 0) {
     shBg.getRange(1, 1, 1, JUMLAH_KOLOM_BUDGET).setValues([HEADER_BUDGET]);
     shBg.setFrozenRows(1);
   }
+
+  // --- Sheet Dompet ---
+  var shDp = ss.getSheetByName(NAMA_SHEET_DOMPET);
+  if (!shDp) shDp = ss.insertSheet(NAMA_SHEET_DOMPET);
+  if (shDp.getLastRow() === 0) {
+    shDp.getRange(1, 1, 1, JUMLAH_KOLOM_DOMPET).setValues([HEADER_DOMPET]);
+    shDp.setFrozenRows(1);
+  }
+  // Seed dompet bawaan kalau daftar masih kosong
+  var dompetPertama = namaDompetPertama(shDp);
+  if (shDp.getLastRow() < 2) {
+    shDp.appendRow([DOMPET_BAWAAN, 0]);
+    dompetPertama = DOMPET_BAWAAN;
+  }
+
+  // Migrasi transaksi lama (belum punya dompet) → dompet pertama
+  if (shTrx.getLastRow() >= 2 && dompetPertama) {
+    var barisData = shTrx.getLastRow() - 1;
+    var tipeKolom = shTrx.getRange(2, 5, barisData, 1).getValues();
+    var dompetKolom = shTrx.getRange(2, 6, barisData, 1).getValues();
+    for (var i = 0; i < barisData; i++) {
+      var tipe = bersih(tipeKolom[i][0]);
+      if (bersih(dompetKolom[i][0]) === '' && (tipe === 'Pemasukan' || tipe === 'Pengeluaran' || tipe === 'Transfer')) {
+        shTrx.getRange(i + 2, 6).setValue(dompetPertama);
+      }
+    }
+  }
 }
+
+function namaDompetPertama(shDp) {
+  if (shDp.getLastRow() < 2) return '';
+  var nilai = shDp.getRange(2, 1, shDp.getLastRow() - 1, 1).getValues();
+  for (var i = 0; i < nilai.length; i++) {
+    var nama = bersih(nilai[i][0]);
+    if (nama) return nama;
+  }
+  return '';
+}
+
+/** Daftar nama dompet yang valid (dari sheet Dompet). */
+function daftarNamaDompet(ss) {
+  var daftar = [];
+  var sh = ss.getSheetByName(NAMA_SHEET_DOMPET);
+  if (!sh || sh.getLastRow() < 2) return daftar;
+  var nilai = sh.getRange(2, 1, sh.getLastRow() - 1, 1).getValues();
+  for (var i = 0; i < nilai.length; i++) {
+    var nama = bersih(nilai[i][0]);
+    if (nama) daftar.push(nama);
+  }
+  return daftar;
+}
+
+function dompetAda(ss, nama) {
+  return daftarNamaDompet(ss).indexOf(nama) !== -1;
+}
+
+/* ---------------- Validasi ---------------- */
 
 function validasiTransaksi(t) {
   if (!t) return 'Data transaksi kosong.';
   if (!t.tanggal) return 'Tanggal wajib diisi.';
-  if (!t.kategori || String(t.kategori).trim() === '') return 'Kategori wajib diisi.';
-  if (angka(t.nominal) <= 0) return 'Nominal harus lebih dari 0.';
-  if (String(t.tipe) !== 'Pemasukan' && String(t.tipe) !== 'Pengeluaran') {
-    return 'Tipe harus "Pemasukan" atau "Pengeluaran".';
+  if (!(angka(t.nominal) > 0)) return 'Nominal harus lebih dari 0.';
+
+  var tipe = bersih(t.tipe);
+  var dompet = bersih(t.dompet);
+  var dompetTujuan = bersih(t.dompetTujuan);
+
+  if (tipe === 'Transfer') {
+    if (!dompet) return 'Dompet asal wajib dipilih.';
+    if (!dompetTujuan) return 'Dompet tujuan wajib dipilih.';
+    if (dompet === dompetTujuan) return 'Dompet asal dan tujuan tidak boleh sama.';
+  } else if (tipe === 'Pemasukan' || tipe === 'Pengeluaran') {
+    if (!t.kategori || bersih(t.kategori) === '') return 'Kategori wajib diisi.';
+    if (!dompet) return 'Dompet wajib dipilih.';
+  } else {
+    return 'Tipe harus Pemasukan, Pengeluaran, atau Transfer.';
   }
   return null;
+}
+
+function validasiNamaDompetBaru(ss, nama, kecualiBaris) {
+  var sh = ss.getSheetByName(NAMA_SHEET_DOMPET);
+  var nilai = sh.getRange(2, 1, Math.max(sh.getLastRow() - 1, 1), 1).getValues();
+  for (var i = 0; i < nilai.length; i++) {
+    var baris = i + 2;
+    if (kecualiBaris && baris === kecualiBaris) continue;
+    if (bersih(nilai[i][0]) === nama) return true; // duplikat
+  }
+  return false;
 }
 
 /* ---------------- Baca data ---------------- */
@@ -141,7 +242,7 @@ function bacaSemuaTransaksi(ss) {
   for (var i = 0; i < nilai.length; i++) {
     var r = nilai[i];
     var tanggal = teksTanggal(r[0]);
-    var kategori = String(r[1] || '').trim();
+    var kategori = bersih(r[1]);
     if (!tanggal || !kategori) continue; // lewati baris kosong
     hasil.push({
       rowIndex: i + 2,              // nomor baris asli di spreadsheet
@@ -149,7 +250,9 @@ function bacaSemuaTransaksi(ss) {
       kategori: kategori,
       deskripsi: String(r[2] || ''),
       nominal: angka(r[3]),
-      tipe: String(r[4] || '') || 'Pengeluaran'
+      tipe: bersih(r[4]) || 'Pengeluaran',
+      dompet: bersih(r[5]),
+      dompetTujuan: bersih(r[6])
     });
   }
   return hasil;
@@ -164,14 +267,33 @@ function bacaSemuaBudget(ss) {
   var hasil = [];
   for (var i = 0; i < nilai.length; i++) {
     var r = nilai[i];
-    var bulan = String(r[0] || '').trim();
-    var kategori = String(r[1] || '').trim();
+    var bulan = bersih(r[0]);
+    var kategori = bersih(r[1]);
     if (!/^\d{4}-\d{2}$/.test(bulan) || !kategori) continue;
     hasil.push({
       rowIndex: i + 2,
       bulan: bulan,
       kategori: kategori,
       anggaran: angka(r[2])
+    });
+  }
+  return hasil;
+}
+
+function bacaSemuaDompet(ss) {
+  var sh = ss.getSheetByName(NAMA_SHEET_DOMPET);
+  var barisAkhir = sh.getLastRow();
+  if (barisAkhir < 2) return [];
+
+  var nilai = sh.getRange(2, 1, barisAkhir - 1, JUMLAH_KOLOM_DOMPET).getValues();
+  var hasil = [];
+  for (var i = 0; i < nilai.length; i++) {
+    var nama = bersih(nilai[i][0]);
+    if (!nama) continue;
+    hasil.push({
+      rowIndex: i + 2,
+      nama: nama,
+      saldoAwal: angka(nilai[i][1])
     });
   }
   return hasil;
@@ -185,14 +307,18 @@ function tambahTransaksi(ss, data) {
 
   var sh = ss.getSheetByName(NAMA_SHEET_TRANSAKSI);
   var barisBaru = sh.getLastRow() + 1;
+  var tipe = bersih(data.tipe);
+  var dompet = bersih(data.dompet);
+  var dompetTujuan = tipe === 'Transfer' ? bersih(data.dompetTujuan) : '';
 
-  // Tulis sebagai teks agar tanggal tidak berubah jadi format lain otomatis
+  if (!dompetAda(ss, dompet) || (dompetTujuan && !dompetAda(ss, dompetTujuan))) {
+    return { status: 'error', message: 'Dompet tidak ditemukan. Muat ulang halaman lalu coba lagi.' };
+  }
+
+  var kategori = tipe === 'Transfer' ? 'Transfer' : bersih(data.kategori);
   sh.getRange(barisBaru, 1, 1, JUMLAH_KOLOM_TRANSAKSI).setValues([[
-    String(data.tanggal),
-    String(data.kategori).trim(),
-    String(data.deskripsi || '').trim(),
-    angka(data.nominal),
-    data.tipe
+    String(data.tanggal), kategori, String(data.deskripsi || '').trim(),
+    angka(data.nominal), tipe, dompet, dompetTujuan
   ]]);
   sh.getRange(barisBaru, 1).setNumberFormat('@'); // kolom tanggal = teks
   return { status: 'success', rowIndex: barisBaru };
@@ -208,12 +334,17 @@ function editTransaksi(ss, data) {
     return { status: 'error', message: 'Nomor baris transaksi tidak valid.' };
   }
 
+  var tipe = bersih(data.tipe);
+  var dompet = bersih(data.dompet);
+  var dompetTujuan = tipe === 'Transfer' ? bersih(data.dompetTujuan) : '';
+  if (!dompetAda(ss, dompet) || (dompetTujuan && !dompetAda(ss, dompetTujuan))) {
+    return { status: 'error', message: 'Dompet tidak ditemukan. Muat ulang halaman lalu coba lagi.' };
+  }
+
+  var kategori = tipe === 'Transfer' ? 'Transfer' : bersih(data.kategori);
   sh.getRange(rowIndex, 1, 1, JUMLAH_KOLOM_TRANSAKSI).setValues([[
-    String(data.tanggal),
-    String(data.kategori).trim(),
-    String(data.deskripsi || '').trim(),
-    angka(data.nominal),
-    data.tipe
+    String(data.tanggal), kategori, String(data.deskripsi || '').trim(),
+    angka(data.nominal), tipe, dompet, dompetTujuan
   ]]);
   sh.getRange(rowIndex, 1).setNumberFormat('@');
   return { status: 'success', rowIndex: rowIndex };
@@ -231,10 +362,10 @@ function hapusTransaksi(ss, rowIndex) {
 /* ---------------- Budget ---------------- */
 
 function setBudget(ss, data) {
-  if (!data || !data.kategori || String(data.kategori).trim() === '') {
+  if (!data || !data.kategori || bersih(data.kategori) === '') {
     return { status: 'error', message: 'Kategori budget wajib diisi.' };
   }
-  var bulan = String(data.bulan || '');
+  var bulan = bersih(data.bulan);
   if (!/^\d{4}-\d{2}$/.test(bulan)) {
     return { status: 'error', message: 'Bulan harus format YYYY-MM (contoh: 2025-01).' };
   }
@@ -242,12 +373,11 @@ function setBudget(ss, data) {
   if (nominal < 0) return { status: 'error', message: 'Anggaran tidak boleh negatif.' };
 
   var sh = ss.getSheetByName(NAMA_SHEET_BUDGET);
-  var kategori = String(data.kategori).trim();
+  var kategori = bersih(data.kategori);
 
-  // Cari baris dengan bulan + kategori yang sama → perbarui; kalau tidak ada → tambah
   var daftar = sh.getRange(2, 1, Math.max(sh.getLastRow() - 1, 1), JUMLAH_KOLOM_BUDGET).getValues();
   for (var i = 0; i < daftar.length; i++) {
-    if (String(daftar[i][0]).trim() === bulan && String(daftar[i][1]).trim() === kategori) {
+    if (bersih(daftar[i][0]) === bulan && bersih(daftar[i][1]) === kategori) {
       var rowIndex = i + 2;
       sh.getRange(rowIndex, 3).setValue(nominal);
       return { status: 'success', rowIndex: rowIndex };
@@ -258,4 +388,76 @@ function setBudget(ss, data) {
   sh.getRange(barisBaru, 1, 1, JUMLAH_KOLOM_BUDGET).setValues([[bulan, kategori, nominal]]);
   sh.getRange(barisBaru, 1).setNumberFormat('@'); // kolom bulan = teks
   return { status: 'success', rowIndex: barisBaru };
+}
+
+/* ---------------- Dompet ---------------- */
+
+function tambahDompet(ss, data) {
+  var nama = bersih(data && data.nama);
+  if (!nama) return { status: 'error', message: 'Nama dompet wajib diisi.' };
+  if (nama.length > 30) return { status: 'error', message: 'Nama dompet maksimal 30 karakter.' };
+  if (validasiNamaDompetBaru(ss, nama)) {
+    return { status: 'error', message: 'Dompet "' + nama + '" sudah ada.' };
+  }
+
+  var saldoAwal = Math.max(0, angka(data && data.saldoAwal));
+  var sh = ss.getSheetByName(NAMA_SHEET_DOMPET);
+  var barisBaru = sh.getLastRow() + 1;
+  sh.getRange(barisBaru, 1, 1, JUMLAH_KOLOM_DOMPET).setValues([[nama, saldoAwal]]);
+  return { status: 'success', rowIndex: barisBaru };
+}
+
+function editDompet(ss, data) {
+  var rowIndex = Number(data && data.rowIndex);
+  var nama = bersih(data && data.nama);
+  if (!rowIndex || rowIndex < 2) return { status: 'error', message: 'Nomor baris dompet tidak valid.' };
+  if (!nama) return { status: 'error', message: 'Nama dompet wajib diisi.' };
+  if (nama.length > 30) return { status: 'error', message: 'Nama dompet maksimal 30 karakter.' };
+  if (validasiNamaDompetBaru(ss, nama, rowIndex)) {
+    return { status: 'error', message: 'Dompet "' + nama + '" sudah ada.' };
+  }
+
+  var shDp = ss.getSheetByName(NAMA_SHEET_DOMPET);
+  var namaLama = bersih(shDp.getRange(rowIndex, 1).getValue());
+  var saldoAwal = Math.max(0, angka(data.saldoAwal));
+  shDp.getRange(rowIndex, 1, 1, JUMLAH_KOLOM_DOMPET).setValues([[nama, saldoAwal]]);
+
+  // Kalau namanya berubah, ikutkan ke semua transaksi lama
+  if (namaLama && namaLama !== nama) {
+    var shTrx = ss.getSheetByName(NAMA_SHEET_TRANSAKSI);
+    if (shTrx.getLastRow() >= 2) {
+      var jml = shTrx.getLastRow() - 1;
+      var nilai = shTrx.getRange(2, 6, jml, 2).getValues(); // kolom F & G
+      for (var i = 0; i < nilai.length; i++) {
+        if (bersih(nilai[i][0]) === namaLama) shTrx.getRange(i + 2, 6).setValue(nama);
+        if (bersih(nilai[i][1]) === namaLama) shTrx.getRange(i + 2, 7).setValue(nama);
+      }
+    }
+  }
+  return { status: 'success', rowIndex: rowIndex };
+}
+
+function hapusDompet(ss, rowIndex) {
+  var shDp = ss.getSheetByName(NAMA_SHEET_DOMPET);
+  if (!rowIndex || rowIndex < 2 || rowIndex > shDp.getLastRow()) {
+    return { status: 'error', message: 'Nomor baris dompet tidak valid.' };
+  }
+  var nama = bersih(shDp.getRange(rowIndex, 1).getValue());
+
+  // Cek apakah dompet masih dipakai transaksi
+  var shTrx = ss.getSheetByName(NAMA_SHEET_TRANSAKSI);
+  if (shTrx.getLastRow() >= 2) {
+    var jml = shTrx.getLastRow() - 1;
+    var nilai = shTrx.getRange(2, 6, jml, 2).getValues();
+    var dipakai = 0;
+    for (var i = 0; i < nilai.length; i++) {
+      if (bersih(nilai[i][0]) === nama || bersih(nilai[i][1]) === nama) dipakai++;
+    }
+    if (dipakai > 0) {
+      return { status: 'error', message: 'Dompet "' + nama + '" masih dipakai ' + dipakai +
+        ' transaksi. Pindahkan/hapus transaksinya dulu, atau ubah dompet transaksi via Edit di halaman Data.' };
+    }
+  }
+  shDp.deleteRow(rowIndex);
+  return { status: 'success' };
 }

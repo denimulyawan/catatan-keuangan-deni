@@ -1,9 +1,10 @@
 /* =========================================================
-   input.js — Halaman Input Transaksi
+   input.js — Halaman Input Transaksi (pemasukan/pengeluaran/transfer)
    ========================================================= */
 'use strict';
 
 let tipeTerpilih = TIPE_TRANSAKSI.PEMASUKAN;
+let DAFTAR_DOMPET = [];   // dari server: [{rowIndex, nama, saldoAwal}]
 
 /* ---------------- Bangun pilihan kategori ---------------- */
 function bangunSelectKategori(pilih) {
@@ -13,6 +14,46 @@ function bangunSelectKategori(pilih) {
   }).join('');
   const el = $('#kategori');
   el.innerHTML = opsi || '<option value="">(tidak ada)</option>';
+}
+
+/* ---------------- Bangun pilihan dompet ---------------- */
+function isiSelectDompet(select, pilih) {
+  select.innerHTML = opsiDompetHTML(DAFTAR_DOMPET, pilih);
+}
+
+function isiSelectDompetTanpa(select, pilih, kecuali) {
+  let html = '';
+  DAFTAR_DOMPET.forEach(function (w) {
+    if (w.nama === kecuali) return;
+    html += '<option value="' + aman(w.nama) + '"' + (w.nama === pilih ? ' selected' : '') + '>' + aman(w.nama) + '</option>';
+  });
+  select.innerHTML = html || '<option value="">(tidak ada)</option>';
+}
+
+/* ---------------- Tampilan mengikuti tipe ---------------- */
+function perbaruiBidangTipe() {
+  const transfer = tipeTerpilih === 'Transfer';
+  $('#grup-dompet-tunggal').hidden = transfer;
+  $('#grup-transfer').hidden = !transfer;
+  $('#grup-kategori').hidden = transfer;
+  $('#label-deskripsi').textContent = transfer ? 'Keterangan' : 'Deskripsi';
+
+  if (transfer) {
+    const asal = $('#dompet-asal').value;
+    const tujuan = $('#dompet-tujuan').value;
+    isiSelectDompet($('#dompet-asal'), asal);
+    isiSelectDompetTanpa($('#dompet-tujuan'), (tujuan === asal ? '' : tujuan), asal);
+  } else {
+    bangunSelectKategori('');
+    isiSelectDompet($('#dompet'), $('#dompet').value);
+  }
+}
+
+/** Sinkronkan isi dropdown transfer (asal ↔ tujuan tak boleh sama). */
+function singkronTransfer() {
+  const asal = $('#dompet-asal').value;
+  const tujuan = $('#dompet-tujuan').value;
+  isiSelectDompetTanpa($('#dompet-tujuan'), (tujuan === asal ? '' : tujuan), asal);
 }
 
 /* ---------------- Pratinjau nominal ---------------- */
@@ -64,19 +105,36 @@ async function muatTransaksiTerakhir() {
       return;
     }
     wadah.innerHTML = terbaru.map(function (t) {
-      const masuk = t.tipe === TIPE_TRANSAKSI.PEMASUKAN;
-      return '<div class="entri-barisan">' +
-        '<span class="bulatan ' + (masuk ? 'masuk' : 'keluar') + '">' + (masuk ? '+' : '−') + '</span>' +
-        '<div class="entri-isi">' +
-        '<div class="entri-judul">' + aman(t.kategori) + (t.deskripsi ? ' · ' + aman(t.deskripsi) : '') + '</div>' +
-        '<div class="entri-sub">' + formatTanggal(t.tanggal) + '</div>' +
-        '</div>' +
-        '<span class="' + (masuk ? 'nominal-plus' : 'nominal-minus') + '">' + (masuk ? '+' : '−') + formatRupiah(t.nominal) + '</span>' +
-        '</div>';
+      return entriBaris(t);
     }).join('');
   } catch (e) {
     // Daftar terakhir tidak wajib; jangan ganggu pengguna
   }
+}
+
+/** Satu baris ringkas (dipakai juga untuk riwayat terakhir). */
+function entriBaris(t) {
+  const isTransfer = t.tipe === 'Transfer';
+  if (isTransfer) {
+    return '<div class="entri-barisan">' +
+      '<span class="bulatan masuk" style="background:#dbeafe;color:#1e40af">⇄</span>' +
+      '<div class="entri-isi">' +
+      '<div class="entri-judul">Transfer' + (t.deskripsi ? ' · ' + aman(t.deskripsi) : '') + '</div>' +
+      '<div class="entri-sub">' + aman(t.dompet) + ' → ' + aman(t.dompetTujuan) + ' · ' + formatTanggal(t.tanggal) + '</div>' +
+      '</div>' +
+      '<span class="nominal-transfer">' + formatRupiah(t.nominal) + '</span>' +
+      '</div>';
+  }
+  const masuk = t.tipe === TIPE_TRANSAKSI.PEMASUKAN;
+  return '<div class="entri-barisan">' +
+    '<span class="bulatan ' + (masuk ? 'masuk' : 'keluar') + '">' + (masuk ? '+' : '−') + '</span>' +
+    '<div class="entri-isi">' +
+    '<div class="entri-judul">' + aman(t.kategori) + (t.deskripsi ? ' · ' + aman(t.deskripsi) : '') +
+    '<span class="tag-dompet">' + aman(t.dompet) + '</span></div>' +
+    '<div class="entri-sub">' + formatTanggal(t.tanggal) + '</div>' +
+    '</div>' +
+    '<span class="' + (masuk ? 'nominal-plus' : 'nominal-minus') + '">' + (masuk ? '+' : '−') + formatRupiah(t.nominal) + '</span>' +
+    '</div>';
 }
 
 /* ---------------- Simpan transaksi ---------------- */
@@ -87,28 +145,50 @@ async function simpanTransaksi(e) {
   const kategori = $('#kategori');
   const deskripsi = $('#deskripsi');
   const nominal = $('#nominal');
+  const transfer = tipeTerpilih === 'Transfer';
+  const dompet = $('#dompet');
+  const dompetAsal = $('#dompet-asal');
+  const dompetTujuan = $('#dompet-tujuan');
 
   // Validasi
   let valid = true;
-  [tanggal, kategori, nominal].forEach(bersihkanGagal);
+  [tanggal, nominal].forEach(bersihkanGagal);
+  if (!transfer) { bersihkanGagal(kategori); bersihkanGagal(dompet); } else {
+    bersihkanGagal(dompetAsal); bersihkanGagal(dompetTujuan);
+  }
+
   if (!tanggal.value) { tandaiGagal(tanggal, 'Pilih tanggal transaksi.'); valid = false; }
-  if (!kategori.value) { tandaiGagal(kategori, 'Pilih kategori.'); valid = false; }
   const nilai = nilaiDariInputRupiah(nominal);
   if (nilai <= 0) { tandaiGagal(nominal, 'Nominal harus lebih dari 0.'); valid = false; }
+
+  if (transfer) {
+    if (!dompetAsal.value) { tandaiGagal(dompetAsal, 'Pilih dompet asal.'); valid = false; }
+    if (!dompetTujuan.value) { tandaiGagal(dompetTujuan, 'Pilih dompet tujuan.'); valid = false; }
+    if (dompetAsal.value && dompetAsal.value === dompetTujuan.value) {
+      tandaiGagal(dompetTujuan, 'Dompet asal dan tujuan tidak boleh sama.'); valid = false;
+    }
+  } else {
+    if (!kategori.value) { tandaiGagal(kategori, 'Pilih kategori.'); valid = false; }
+    if (!dompet.value) { tandaiGagal(dompet, 'Pilih dompet.'); valid = false; }
+  }
   if (!valid) return;
 
   const tombol = $('#tombol-simpan');
   tombol.disabled = true;
   tombol.textContent = 'Menyimpan…';
 
+  const payload = {
+    tanggal: tanggal.value,
+    kategori: transfer ? 'Transfer' : kategori.value,
+    deskripsi: deskripsi.value.trim(),
+    nominal: nilai,
+    tipe: tipeTerpilih,
+    dompet: transfer ? dompetAsal.value : dompet.value,
+    dompetTujuan: transfer ? dompetTujuan.value : ''
+  };
+
   try {
-    await tambahTransaksi({
-      tanggal: tanggal.value,
-      kategori: kategori.value,
-      deskripsi: deskripsi.value.trim(),
-      nominal: nilai,
-      tipe: tipeTerpilih
-    });
+    await tambahTransaksi(payload);
     toast('Transaksi tersimpan ✅');
     resetFormulir();
     muatTransaksiTerakhir();
@@ -123,34 +203,51 @@ async function simpanTransaksi(e) {
 function resetFormulir() {
   const form = $('#form-transaksi');
   form.reset();
-  // reset() mengembalikan ke state awal HTML (checked = Pemasukan)
   tipeTerpilih = TIPE_TRANSAKSI.PEMASUKAN;
-  bangunSelectKategori('');
   $('#tanggal').value = tanggalHariIni();
+  perbaruiBidangTipe();
+  bangunSelectKategori('');
   perbaruiPratinjau();
 }
 
 /* ---------------- Inisialisasi ---------------- */
-function initInput() {
+async function initInput() {
   siapkanInputRupiah($('#nominal'));
   $('#tanggal').value = tanggalHariIni();
+
+  // Ambil daftar dompet
+  try {
+    DAFTAR_DOMPET = await getDompet();
+  } catch (err) {
+    toast(err.message, 'error');
+  }
 
   // Pemilihan tipe
   const radios = document.querySelectorAll('input[name="tipe"]');
   radios.forEach(function (r) {
     r.addEventListener('change', function () {
       tipeTerpilih = r.value;
-      bangunSelectKategori('');
+      perbaruiBidangTipe();
       perbaruiPratinjau();
     });
   });
 
+  $('#dompet').addEventListener('change', function () {
+    isiSelectDompet($('#dompet-asal'), this.value);
+    singkronTransfer();
+  });
+  $('#dompet-asal').addEventListener('change', singkronTransfer);
+
+  perbaruiBidangTipe();
   bangunSelectKategori('');
   perbaruiPratinjau();
   $('#nominal').addEventListener('input', perbaruiPratinjau);
   $('#nominal').addEventListener('keydown', function (e2) {
     if (e2.key === 'Enter') e2.preventDefault();
   });
+
+  // Kelola dompet
+  $('#tombol-kelola-dompet').addEventListener('click', bukaKelolaDompet);
 
   // Panel tambah kategori baru
   const tombolPanel = $('#tombol-kategori-baru');

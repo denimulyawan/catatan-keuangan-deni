@@ -14,7 +14,7 @@
     <div class="baris-judul">
       <div>
         <h1>Input Transaksi</h1>
-        <p class="muted">Catat pemasukan atau pengeluaran</p>
+        <p class="muted">Catat pemasukan, pengeluaran, atau transfer antar dompet</p>
       </div>
     </div>
 
@@ -26,15 +26,33 @@
 
       <div class="form-grup">
         <span class="label-grup">Tipe <span class="wajib">*</span></span>
-        <div class="segmen-tipe" id="segmen-tipe">
+        <div class="segmen-tipe tiga" id="segmen-tipe">
           <input type="radio" name="tipe" id="tipe-pemasukan" value="Pemasukan" checked>
           <label class="pil-tipe" for="tipe-pemasukan"><span class="tanda tanda-plus">+</span> Pemasukan</label>
           <input type="radio" name="tipe" id="tipe-pengeluaran" value="Pengeluaran">
           <label class="pil-tipe" for="tipe-pengeluaran"><span class="tanda tanda-minus">−</span> Pengeluaran</label>
+          <input type="radio" name="tipe" id="tipe-transfer" value="Transfer">
+          <label class="pil-tipe" for="tipe-transfer"><span class="tanda tanda-transfer">⇄</span> Transfer</label>
         </div>
       </div>
 
+      <div class="form-grup" id="grup-dompet-tunggal">
+        <label for="dompet">Dompet <span class="wajib">*</span></label>
+        <select class="form-kontrol" id="dompet" required></select>
+      </div>
+
+      <div class="form-grup" id="grup-transfer" hidden>
+        <label for="dompet-asal">Dari Dompet <span class="wajib">*</span></label>
+        <select class="form-kontrol" id="dompet-asal" required></select>
+        <label for="dompet-tujuan" style="margin-top:12px">Ke Dompet <span class="wajib">*</span></label>
+        <select class="form-kontrol" id="dompet-tujuan" required></select>
+      </div>
+
       <div class="form-grup">
+        <button type="button" class="link-tambah" id="tombol-kelola-dompet">⚙️ Kelola dompet / rekening</button>
+      </div>
+
+      <div class="form-grup" id="grup-kategori">
         <label for="kategori">Kategori <span class="wajib">*</span></label>
         <select class="form-kontrol" id="kategori" required></select>
         <button type="button" class="link-tambah" id="tombol-kategori-baru">＋ Tambah kategori baru</button>
@@ -45,7 +63,7 @@
       </div>
 
       <div class="form-grup">
-        <label for="deskripsi">Deskripsi <span class="opsional">(opsional)</span></label>
+        <label for="deskripsi"><span id="label-deskripsi">Deskripsi</span> <span class="opsional">(opsional)</span></label>
         <input type="text" class="form-kontrol" id="deskripsi" placeholder="Mis. Makan siang di warteg" maxlength="100">
       </div>
 

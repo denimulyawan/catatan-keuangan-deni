@@ -278,6 +278,160 @@ function konfirmasi(opts) {
   });
 }
 
+/* ---------------- Dompet: pilihan & manajemen ---------------- */
+
+/** Opsi <option> dari daftar dompet. */
+function opsiDompetHTML(dompet, pilih, labelKosong) {
+  let html = '';
+  if (labelKosong) html += '<option value="">' + aman(labelKosong) + '</option>';
+  dompet.forEach(function (w) {
+    html += '<option value="' + aman(w.nama) + '"' + (w.nama === pilih ? ' selected' : '') + '>' +
+      aman(w.nama) + '</option>';
+  });
+  return html;
+}
+
+let dompetBerubah = false;
+
+/** Modal "Kelola Dompet": tambah, ubah nama/saldo awal, hapus. */
+async function bukaKelolaDompet() {
+  const lapisan = bukaModal(
+    '<div class="modal-judul"><h3>Kelola Dompet / Rekening</h3>' +
+    '<button type="button" class="modal-tutup" data-tutup-modal aria-label="Tutup">✕</button></div>' +
+    '<p class="pesan" style="margin-bottom:12px">Dompet = tempat uang Anda (Tunai, rekening bank, e-wallet). ' +
+    'Saldo awal dipakai untuk uang yang sudah ada sebelum mulai mencatat.</p>' +
+    '<div id="isi-kelola-dompet"></div>'
+  );
+
+  // Tombol tutup di dalam konten (Selesai) — ganti perilaku tutup default bila ada perubahan
+  await renderIsiKelolaDompet();
+
+  const tombolX = lapisan.querySelector('[data-tutup-modal]');
+  tombolX.addEventListener('click', function () {
+    if (dompetBerubah) location.reload();
+  });
+  lapisan.addEventListener('mousedown', function (e) {
+    if (e.target === lapisan && dompetBerubah) location.reload();
+  });
+}
+
+async function renderIsiKelolaDompet() {
+  const wadah = $('#isi-kelola-dompet');
+  if (!wadah) return;
+  wadah.innerHTML = '<div class="pemuat"><div class="spinner"></div><span>Memuat dompet…</span></div>';
+
+  let dompet;
+  try {
+    dompet = await getDompet();
+  } catch (err) {
+    wadah.innerHTML = '<div class="kotak-error">' + aman(err.message) + '</div>';
+    return;
+  }
+
+  wadah.innerHTML =
+    // Form tambah baru
+    '<div class="kelola-tambah">' +
+    '<input type="text" class="form-kontrol" id="dp-nama-baru" placeholder="Nama dompet baru, mis. BCA" maxlength="30">' +
+    '<div class="grup-input kecil-grup"><span class="grup-prefix">Rp</span>' +
+    '<input type="text" class="form-kontrol kontrol-prefix" id="dp-saldo-baru" inputmode="numeric" placeholder="Saldo awal (0 jika kosong)"></div>' +
+    '<button type="button" class="btn btn-primer btn-kecil" id="dp-tombol-tambah">＋ Tambah</button>' +
+    '</div>' +
+    '<div class="kelola-catatan kecil muted">Klik <strong>Simpan</strong> untuk mengunci perubahan tiap baris.</div>' +
+    '<div id="dp-daftar"></div>';
+
+  siapkanInputRupiah($('#dp-saldo-baru'));
+  $('#dp-tombol-tambah').addEventListener('click', async function () {
+    const inputNama = $('#dp-nama-baru');
+    const nama = inputNama.value.trim();
+    if (!nama) { inputNama.focus(); toast('Nama dompet wajib diisi.', 'error'); return; }
+    const btn = this;
+    btn.disabled = true;
+    try {
+      await tambahDompet({ nama: nama, saldoAwal: nilaiDariInputRupiah($('#dp-saldo-baru')) });
+      dompetBerubah = true;
+      toast('Dompet "' + nama + '" ditambahkan 🎉');
+      inputNama.value = '';
+      $('#dp-saldo-baru').value = '';
+      await renderIsiKelolaDompet();
+    } catch (err) {
+      toast(err.message, 'error');
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  if (dompet.length === 0) {
+    $('#dp-daftar').innerHTML = '<div class="kosong">Belum ada dompet. Tambahkan di atas.</div>';
+    return;
+  }
+
+  $('#dp-daftar').innerHTML = dompet.map(function (w) {
+    return '<div class="kelola-baris" data-row="' + w.rowIndex + '">' +
+      '<input type="text" class="form-kontrol" data-bidang="nama" value="' + aman(w.nama) + '" maxlength="30">' +
+      '<div class="grup-input kecil-grup"><span class="grup-prefix">Rp</span>' +
+      '<input type="text" class="form-kontrol kontrol-prefix" data-bidang="saldo" inputmode="numeric" value="' +
+      (Number(w.saldoAwal) > 0 ? formatAngka(w.saldoAwal) : '') + '"></div>' +
+      '<button type="button" class="btn btn-primer btn-kecil" data-tombol="simpan">Simpan</button>' +
+      '<button type="button" class="btn btn-kecil btn-abu" data-tombol="hapus">🗑</button>' +
+      '</div>';
+  }).join('');
+
+  $('#dp-daftar').querySelectorAll('.kelola-baris').forEach(function (baris) {
+    const rowIndex = Number(baris.dataset.row);
+    const inputNama = baris.querySelector('[data-bidang="nama"]');
+    const inputSaldo = baris.querySelector('[data-bidang="saldo"]');
+    const tombolSimpan = baris.querySelector('[data-tombol="simpan"]');
+    const tombolHapus = baris.querySelector('[data-tombol="hapus"]');
+
+    siapkanInputRupiah(inputSaldo);
+    tombolSimpan.addEventListener('click', async function () {
+      const nama = inputNama.value.trim();
+      if (!nama) { toast('Nama dompet tidak boleh kosong.', 'error'); return; }
+      tombolSimpan.disabled = true;
+      tombolSimpan.textContent = '…';
+      try {
+        await editDompet({ rowIndex: rowIndex, nama: nama, saldoAwal: nilaiDariInputRupiah(inputSaldo) });
+        dompetBerubah = true;
+        toast('Dompet diperbarui ✅');
+        await renderIsiKelolaDompet();
+      } catch (err) {
+        toast(err.message, 'error');
+        tombolSimpan.disabled = false;
+        tombolSimpan.textContent = 'Simpan';
+      }
+    });
+
+    tombolHapus.addEventListener('click', async function () {
+      const namaSekarang = inputNama.value.trim() || '(tanpa nama)';
+      // Konfirmasi dua langkah di dalam tombol (hindari menutup modal induk)
+      if (tombolHapus.dataset.yakin !== '1') {
+        tombolHapus.dataset.yakin = '1';
+        const teksAsli = tombolHapus.textContent;
+        tombolHapus.textContent = 'Yakin?';
+        tombolHapus.classList.add('btn-bahaya');
+        setTimeout(function () {
+          delete tombolHapus.dataset.yakin;
+          tombolHapus.textContent = teksAsli;
+          tombolHapus.classList.remove('btn-bahaya');
+        }, 4000);
+        return;
+      }
+      tombolHapus.disabled = true;
+      tombolHapus.textContent = '…';
+      try {
+        await hapusDompet(rowIndex);
+        dompetBerubah = true;
+        toast('Dompet "' + namaSekarang + '" dihapus 🗑');
+        await renderIsiKelolaDompet();
+      } catch (err) {
+        toast(err.message, 'error');
+        tombolHapus.disabled = false;
+        tombolHapus.textContent = '🗑';
+      }
+    });
+  });
+}
+
 /* ---------------- Warna chart ---------------- */
 const PALET_CHART = [
   '#2563eb', '#7c3aed', '#db2777', '#dc2626', '#ea580c', '#d97706',

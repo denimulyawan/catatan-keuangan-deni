@@ -11,15 +11,17 @@ Data tersimpan di **Google Sheets**, dihubungkan lewat **Google Apps Script**, d
 
 | Halaman | Fungsi |
 |---|---|
-| **Dashboard** | KPI bulan ini (Pemasukan, Pengeluaran, Saldo), pie chart pengeluaran per kategori, line chart tren 6 bulan, transaksi terbaru |
-| **Input** | Catat transaksi (tanggal, tipe, kategori, deskripsi, nominal) + tambah kategori sendiri |
-| **Data** | Tabel semua transaksi; filter bulan/kategori/tipe, pencarian, edit & hapus |
+| **Dashboard** | **Saldo per dompet**, KPI bulan ini (Pemasukan, Pengeluaran, Saldo), **filter dompet**, pie chart pengeluaran per kategori, line chart tren 6 bulan, transaksi terbaru |
+| **Input** | Catat **pemasukan / pengeluaran / transfer antar dompet** (tanggal, dompet, tipe, kategori, deskripsi, nominal) + tambah kategori sendiri + kelola dompet |
+| **Data** | Tabel semua transaksi; filter **bulan / kategori / dompet / tipe**, pencarian, edit & hapus |
 | **Budget** | Atur budget per kategori per bulan + progress bar dengan peringatan otomatis (>70% kuning, ≥100% merah) |
+
+**Dompet / rekening:** Anda bisa punya banyak dompet (Tunai, rekening bank, e-wallet) dengan **Saldo Awal** masing-masing. Transfer antar dompet sendiri **tidak dihitung** sebagai pemasukan/pengeluaran.
 
 **Kategori bawaan:**
 - Pemasukan: `Gaji`, `Bonus`
 - Pengeluaran: `Makan`, `Transportasi`, `Tagihan`, `Hiburan`, `Pendidikan`, `Orang Tua`
-- Kategori tambahan yang Anda buat di halaman Input tersimpan di **browser** (localStorage). Artinya: kategori tambahan tidak ikut pindah kalau Anda buka dari HP/komputer lain.
+- Kategori tambahan yang Anda buat tersimpan di **browser** (localStorage) — tidak ikut pindah ke perangkat lain.
 
 ---
 
@@ -28,14 +30,14 @@ Data tersimpan di **Google Sheets**, dihubungkan lewat **Google Apps Script**, d
 ```
 catatan-keuangan-deni/
 ├── index.html          → halaman pembuka (otomatis ke Dashboard)
-├── dashboard.html      → KPI + chart
-├── input.html          → form input transaksi
+├── dashboard.html      → saldo dompet + KPI + chart
+├── input.html          → form input (pemasukan/pengeluaran/transfer)
 ├── data.html           → tabel + filter + edit/hapus
 ├── budget.html         → atur budget bulanan
 ├── css/
 │   └── style.css       → semua gaya (mobile-first, responsif)
 ├── js/
-│   ├── app.js          → utilitas bersama (kategori, format Rp, navigasi, modal, toast)
+│   ├── app.js          → utilitas bersama (kategori, dompet, format Rp, navigasi, modal)
 │   ├── api.js          → ⚙️ URL Apps Script + semua fungsi fetch
 │   ├── dashboard.js
 │   ├── input.js
@@ -52,39 +54,42 @@ catatan-keuangan-deni/
 
 ## 🚀 Cara Pasang (lakukan sekali saja)
 
-Ada 3 bagian: **(1)** Google Sheets + Apps Script, **(2)** isi URL di `api.js`, **(3)** upload ke Vercel.
-
 ### Bagian 1 — Google Sheets & Apps Script
 
 1. Buat Google Sheet baru (lewat [sheets.new](https://sheets.new)).
-2. Buat **2 sheet** (tab di bawah): satu bernama **`Transaksi`**, satu bernama **`Budget`**.
-3. Isi **baris pertama (header)** persis seperti ini dan **jangan ubah urutan kolom**:
+2. Pastikan ada sheet (tab): **`Transaksi`**, **`Budget`**, dan **`Dompet`**.
+   (Backend membuatkannya otomatis bila belum ada.)
+3. Urutan kolom yang dipakai aplikasi (baris 1 = header, jangan diubah urutannya):
 
-   **Sheet `Transaksi`** (5 kolom):
+   **Sheet `Transaksi`** (7 kolom):
    ```
-   Tanggal   | Kategori | Deskripsi | Nominal | Tipe
+   Tanggal | Kategori | Deskripsi | Nominal | Tipe | Dompet | Dompet Tujuan
    ```
-   - `Tanggal` diisi format `2025-01-05`
-   - `Nominal` angka biasa (mis. `50000` — tanpa "Rp" dan tanpa titik)
-   - `Tipe` isinya `Pemasukan` atau `Pengeluaran`
+   - `Tanggal` format `2025-01-05` · `Nominal` angka polos tanpa Rp/titik
+   - `Tipe`: `Pemasukan` / `Pengeluaran` / `Transfer`
+   - `Dompet` = asal uang · `Dompet Tujuan` hanya dipakai saat tipe `Transfer`
 
    **Sheet `Budget`** (3 kolom):
    ```
-   Bulan     | Kategori | Anggaran
+   Bulan | Kategori | Anggaran
    ```
    - `Bulan` format `2025-01`
 
-   > Baris 2 dan seterusnya boleh kosong dulu — nanti diisi otomatis oleh aplikasi. (Kalau header belum ada, backend juga akan membuatkannya otomatis.)
+   **Sheet `Dompet`** (2 kolom):
+   ```
+   Nama | Saldo Awal
+   ```
+   - Baris 2 dst diisi otomatis lewat menu **Kelola Dompet** di aplikasi.
+   - Saldo awal = uang yang sudah ada di dompet itu sebelum mulai mencatat.
 
 4. Di Google Sheet: menu **Ekstensi → Apps Script**.
 5. **Hapus semua kode** di editor, lalu **tempel seluruh isi file `apps-script/Code.gs`** dari repo ini.
-6. Klik **💾 Simpan**, lalu klik **Deploy → New deployment**.
-7. Pilih jenis **Web app**, lalu atur:
-   - **Execute as:** `Me` (akun Anda)
-   - **Who has access:** `Anyone`
-8. Klik **Deploy**, ikuti proses izin (pilih akun → **Allow**).
-9. Salin **URL Web app** yang muncul (diakhiri `/exec`). Contoh:
-   `https://script.google.com/macros/s/XXXXXX/exec`
+6. Klik **💾 Simpan**, lalu **Deploy → Manage deployments → ✏️ Edit → Version: New version → Deploy** (URL `/exec` tetap sama).
+   - Kalau belum ada deployment sama sekali: **Deploy → New deployment → Web app**, *Execute as*: `Me`, *Who has access*: `Anyone`.
+7. Salin URL Web app (diakhiri `/exec`) → pastikan sama dengan `API_URL` di `js/api.js`.
+
+> 💡 **Tes cepat:** buka URL `/exec` di browser → harus muncul teks
+> *"Catatan Keuangan API aktif. Kirim permintaan dengan metode POST."*
 
 ### Bagian 2 — Isi URL di api.js
 
@@ -94,56 +99,56 @@ Buka **`js/api.js`**, pastikan baris ini memakai URL `/exec` Anda:
 const API_URL = 'https://script.google.com/macros/s/XXXXXX/exec';
 ```
 
-> File sudah diisi URL Anda. Ganti **hanya jika** URL berubah saat Anda deploy ulang.
->
-> 💡 **Tes cepat:** buka URL `/exec` di browser → harus muncul teks
-> *"Catatan Keuangan API aktif. Kirim permintaan dengan metode POST."*
-
 ### Bagian 3 — Upload ke Vercel
 
 1. Buat repository baru di [github.com/new](https://github.com/new) (boleh **Private**).
-2. Upload **semua isi folder** `catatan-keuangan-deni/` ke repo (file `index.html` harus **di root repo**, bukan di sub-folder).
-3. Buka [vercel.com/new](https://vercel.com/new), **import** repository tersebut.
-4. Vercel mendeteksi situs statis otomatis (tidak perlu isi Build Command).
-5. Klik **Deploy**. Selesai! 🎉 Website bisa dibuka dari HP melalui URL Vercel Anda.
-
-> Setelah menambahkan aplikasi ke Home Screen di HP, rasanya seperti aplikasi biasa.
+2. Upload **semua isi folder** `catatan-keuangan-deni/` ke repo (file `index.html` di **root repo**).
+3. Buka [vercel.com/new](https://vercel.com/new), **import** repository → **Deploy**.
+4. Setiap perubahan kode: `git add -A && git commit -m "..." && git push origin main` → Vercel otomatis build ulang.
 
 ---
 
 ## 🧪 Cara Mencoba / Tes
 
-Setelah semua terpasang:
+1. Buka **Input** → tipe **Pengeluaran** → pilih dompet (mis. `Tunai`) → kategori `Makan`, nominal `50000` → Simpan. Ulangi beberapa kali + satu Pemasukan.
+2. **Kelola dompet** (tombol ⚙️ di Dashboard / Input): tambah `BCA`, `OVO`, isi saldo awalnya.
+3. Catat **Transfer** dari `BCA` → `OVO` — cek saldo kedua dompet berubah tanpa memengaruhi KPI pemasukan/pengeluaran.
+4. Cek **Dashboard** (saldo per dompet + KPI + chart) dan **Budget**.
 
-1. Buka website Anda.
-2. Halaman **Input** → pilih tipe **Pengeluaran**, kategori **Makan**, nominal **50000**, klik **Simpan Transaksi**.
-3. Ulangi beberapa kali dengan kategori lain dan satu **Pemasukan** (mis. Gaji).
-4. Buka **Dashboard** → KPI, pie chart, dan line chart terisi.
-5. Buka **Budget** → set anggaran kecil (mis. Makan = 30000) lalu simpan; kalau pengeluaran Makan sudah melewati 70% muncul peringatan kuning, ≥100% jadi merah.
+> ⏳ Panggilan pertama ke Apps Script kadang butuh **20–40 detik** (server "tidur"). Kalau error pertama kali, muat ulang halaman.
 
-> ⏳ Catatan: panggilan pertama ke Apps Script kadang butuh **20–40 detik** (server "tidur"). Kalau pertama kali muncul error, cukup **muat ulang halaman** — berikutnya akan cepat.
+---
+
+## 🔄 Cara Update Kode Backend (penting saat fitur baru)
+
+Setelah Anda menarik versi terbaru `apps-script/Code.gs`:
+1. Buka Google Sheet → **Ekstensi → Apps Script** → ganti seluruh kode dengan isi file terbaru.
+2. **💾 Simpan** → **Deploy → Manage deployments → ✏️ Edit → Version: New version → Deploy**.
+3. Muat ulang website (Ctrl+F5).
+
+Fungsi `pastikanStruktur` di backend otomatis: membuat sheet `Dompet`, menambah kolom `Dompet` & `Dompet Tujuan`, dan **memindahkan transaksi lama ke dompet `Tunai`** (data aman, tidak ada yang hilang).
 
 ---
 
 ## ❓ Pertanyaan yang Sering Muncul
 
-**Data tidak muncul / ada error merah di halaman?**
-1. Pastikan URL di `js/api.js` persis URL `/exec` milik Anda.
-2. Buka URL tersebut di browser — kalau tidak muncul teks "API aktif", berarti deployment belum benar (periksa: *Execute as: Me*, *Who has access: Anyone*).
-3. Setelah mengubah kode Apps Script, buka **Deploy → Manage deployments → Edit ✏️ → Version: New version → Deploy**, supaya versi terbaru yang aktif.
-4. Tunggu beberapa detik lalu muat ulang halaman website.
+**Transaksi lama saya ke mana?**
+Tetap ada — otomatis tercatat ke dompet **`Tunai`**. Ubah lewat halaman Data → tombol Edit jika ingin pindah dompet.
 
-**Header sheet saya sudah terisi sebelumnya, tapi format kolom beda?**
-Urutan kolom **wajib** sesuai tabel di atas (Tanggal/Kategori/Deskripsi/Nominal/Tipe). Isi header bisa disesuaikan teksnya, yang penting urutannya sama.
+**Hapus dompet tidak bisa?**
+Dompet yang masih dipakai transaksi tidak bisa dihapus (demi keutuhan data). Ubah/hapus transaksinya dulu, atau ganti dompet transaksi via Edit.
+
+**Data tidak muncul / ada error merah?**
+1. Pastikan URL di `js/api.js` persis URL `/exec` Anda.
+2. Buka URL `/exec` di browser — harus muncul "API aktif".
+3. Setelah ganti kode Apps Script: **Manage deployments → Edit → New version → Deploy**.
+4. Muat ulang halaman website (Ctrl+F5).
 
 **Edit/hapus salah baris?**
-Setiap baris transaksi punya nomor baris asli di spreadsheet; aplikasi memakai nomor itu. Jangan menyisipkan/menghapus baris manual di spreadsheet saat aplikasi sedang dipakai.
-
-**Kategori tambahan hilang saat buka dari perangkat lain?**
-Ya — kategori tambahan tersimpan di browser (tanpa login memang begitu). Cukup tambahkan lagi sekali di perangkat tersebut, atau gunakan kategori bawaan.
+Aplikasi memakai nomor baris asli di spreadsheet. Jangan menyisipkan/menghapus baris manual di spreadsheet saat aplikasi dipakai.
 
 **Apakah ada batasan?**
-Google Apps Script gratis punya kuota harian (umumnya ribuan panggilan/hari) — sangat cukup untuk catatan pribadi.
+Google Apps Script gratis punya kuota harian (ribuan panggilan/hari) — sangat cukup untuk catatan pribadi.
 
 ---
 
