@@ -17,7 +17,7 @@
    ========================================================= */
 'use strict';
 
-const API_URL = 'https://script.google.com/macros/s/AKfycbzbIPYtgjJarWxHpqNghfQrWDYynUuHEvMCqggMAbuHxCa5BPGTtqfpxWdvMkeF11K_/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbz063iv1wVYTAsMRq3R4v1aQsvcHgaoV1LKMBjsI7H5T7tEKYntdhP4gFgmIet7xL-4/exec';
 
 /** Kirim satu permintaan POST JSON ke Apps Script. */
 async function kirimKeApi(payload) {
