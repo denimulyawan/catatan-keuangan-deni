@@ -31,7 +31,15 @@ function isiSelectDompetTanpa(select, pilih, kecuali) {
 }
 
 /* ---------------- Tampilan mengikuti tipe ---------------- */
+
+/** Baca pilihan tipe LANGSUNG dari tombol radio yang aktif (anti-salah-cache). */
+function tipeTerpilihSekarang() {
+  const radio = document.querySelector('input[name="tipe"]:checked');
+  return radio ? radio.value : TIPE_TRANSAKSI.PEMASUKAN;
+}
+
 function perbaruiBidangTipe() {
+  tipeTerpilih = tipeTerpilihSekarang();
   const transfer = tipeTerpilih === 'Transfer';
   $('#grup-dompet-tunggal').hidden = transfer;
   $('#grup-transfer').hidden = !transfer;
@@ -47,6 +55,34 @@ function perbaruiBidangTipe() {
     bangunSelectKategori('');
     isiSelectDompet($('#dompet'), $('#dompet').value);
   }
+  perbaruiRingkasan();
+}
+
+/** Ringkasan "akan disimpan sebagai apa" — biar tidak salah pilih. */
+function perbaruiRingkasan() {
+  const wadah = $('#ringkasan-simpan');
+  if (!wadah) return;
+  const nilai = nilaiDariInputRupiah($('#nominal'));
+  const tipe = tipeTerpilihSekarang();
+  if (nilai <= 0) { wadah.hidden = true; return; }
+
+  if (tipe === 'Transfer') {
+    const dari = $('#dompet-asal').value;
+    const ke = $('#dompet-tujuan').value;
+    if (!dari || !ke) { wadah.hidden = true; return; }
+    wadah.hidden = false;
+    wadah.innerHTML = 'Akan disimpan: <b>Transfer</b> <span class="nominal-transfer">' + formatRupiah(nilai) + '</span>' +
+      ' — dari <b>' + aman(dari) + '</b> ke <b>' + aman(ke) + '</b>.';
+    return;
+  }
+
+  const masuk = tipe === TIPE_TRANSAKSI.PEMASUKAN;
+  const kategori = $('#kategori').value || '…';
+  const dompet = $('#dompet').value || '…';
+  wadah.hidden = false;
+  wadah.innerHTML = 'Akan disimpan: <b>' + aman(tipe) + '</b> ' +
+    '<span class="' + (masuk ? 'nominal-plus' : 'nominal-minus') + '">' + (masuk ? '+' : '−') + formatRupiah(nilai) + '</span>' +
+    ' · Kategori <b>' + aman(kategori) + '</b> · Dompet <b>' + aman(dompet) + '</b>';
 }
 
 /** Sinkronkan isi dropdown transfer (asal ↔ tujuan tak boleh sama). */
@@ -140,6 +176,9 @@ function entriBaris(t) {
 /* ---------------- Simpan transaksi ---------------- */
 async function simpanTransaksi(e) {
   e.preventDefault();
+
+  // Pastikan tipe diambil langsung dari radio yang aktif saat disimpan
+  tipeTerpilih = tipeTerpilihSekarang();
 
   const tanggal = $('#tanggal');
   const kategori = $('#kategori');
@@ -235,13 +274,22 @@ async function initInput() {
   $('#dompet').addEventListener('change', function () {
     isiSelectDompet($('#dompet-asal'), this.value);
     singkronTransfer();
+    perbaruiRingkasan();
   });
-  $('#dompet-asal').addEventListener('change', singkronTransfer);
+  $('#dompet-asal').addEventListener('change', function () {
+    singkronTransfer();
+    perbaruiRingkasan();
+  });
+  $('#kategori').addEventListener('change', perbaruiRingkasan);
 
   perbaruiBidangTipe();
   bangunSelectKategori('');
   perbaruiPratinjau();
-  $('#nominal').addEventListener('input', perbaruiPratinjau);
+  perbaruiRingkasan();
+  $('#nominal').addEventListener('input', function () {
+    perbaruiPratinjau();
+    perbaruiRingkasan();
+  });
   $('#nominal').addEventListener('keydown', function (e2) {
     if (e2.key === 'Enter') e2.preventDefault();
   });

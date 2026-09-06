@@ -132,6 +132,15 @@ function pastikanStruktur(ss) {
   if (bersih(shTrx.getRange(1, 6).getValue()) === '') shTrx.getRange(1, 6).setValue('Dompet');
   if (bersih(shTrx.getRange(1, 7).getValue()) === '') shTrx.getRange(1, 7).setValue('Dompet Tujuan');
 
+  // Rapikan label header bila tertukar (data tetap terbaca berdasarkan posisi):
+  // kasus: D tertulis "Tipe" padahal isinya Nominal, dan E kosong padahal isinya Tipe.
+  var headerD = bersih(shTrx.getRange(1, 4).getValue());
+  var headerE = bersih(shTrx.getRange(1, 5).getValue());
+  if (headerD.toUpperCase() === 'TIPE' && headerE === '') {
+    shTrx.getRange(1, 4).setValue('Nominal');
+    shTrx.getRange(1, 5).setValue('Tipe');
+  }
+
   // --- Sheet Budget ---
   var shBg = ss.getSheetByName(NAMA_SHEET_BUDGET);
   if (!shBg) shBg = ss.insertSheet(NAMA_SHEET_BUDGET);
