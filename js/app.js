@@ -30,9 +30,12 @@ const KONFIG_LOGIN = {
   sesiHari: 7               // berapa hari tetap masuk sebelum minta login lagi
 };
 
-/** Daftar kategori tetap untuk satu tipe (Pemasukan / Pengeluaran). */
+/** Daftar kategori tetap untuk satu tipe.
+ *  Tipe boleh ditulis "Pemasukan"/"Pengeluaran" maupun kunci kecil,
+ *  supaya tidak ada dropdown kategori yang kosong. */
 function getKategori(tipe) {
-  return (KATEGORI_DEFAULT[tipe] || []).slice();
+  const kunci = String(tipe || '').toLowerCase() === 'pemasukan' ? 'pemasukan' : 'pengeluaran';
+  return (KATEGORI_DEFAULT[kunci] || []).slice();
 }
 
 /** Semua kategori unik (untuk filter di halaman Data). */
