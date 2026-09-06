@@ -461,3 +461,48 @@ tr.baris:hover td { background: #f8fafc; }
 
 /* Kolom dompet di tabel Data */
 .td-dompet { white-space: nowrap; color: #334155; font-size: 0.8rem; }
+
+/* =========================================================
+   Halaman Login & tombol Keluar
+   ========================================================= */
+.halaman-login-body {
+  min-height: 100vh; display: flex; align-items: center; justify-content: center;
+  padding: 20px 16px;
+  background:
+    radial-gradient(900px 400px at 85% -10%, rgba(16, 185, 129, 0.18), transparent 60%),
+    radial-gradient(700px 350px at -10% 110%, rgba(37, 99, 235, 0.12), transparent 60%),
+    var(--bg);
+}
+.kartu-login {
+  width: min(94vw, 400px);
+  background: var(--kartu); border: 1px solid var(--garis);
+  border-radius: 22px; padding: 28px 24px 22px;
+  box-shadow: var(--bayangan); text-align: center;
+}
+.login-logo {
+  width: 64px; height: 64px; margin: 0 auto 12px; border-radius: 20px;
+  display: flex; align-items: center; justify-content: center; font-size: 2rem;
+  background: linear-gradient(135deg, var(--primer), #10b981);
+  box-shadow: 0 8px 24px rgba(5, 150, 105, 0.35);
+}
+.kartu-login h1 { font-size: 1.35rem; margin-bottom: 2px; }
+.kartu-login .muted { margin-bottom: 18px; }
+.kartu-login form { text-align: left; margin-top: 6px; }
+#pesan-login {
+  background: var(--merah-muda); color: #991b1b;
+  border-radius: 10px; padding: 9px 12px; margin: 0 0 12px;
+  font-size: 0.82rem; font-weight: 600;
+}
+.kartu-login form .btn { margin-top: 4px; }
+.catatan-login { margin-top: 16px; line-height: 1.7; }
+.catatan-login code {
+  background: #f1f5f9; border: 1px solid var(--garis);
+  padding: 1px 6px; border-radius: 6px; font-size: 0.75rem;
+}
+.tombol-keluar {
+  flex-shrink: 0; margin-left: 10px;
+  border: 1px solid var(--garis); background: #fff; color: var(--teks-2);
+  padding: 7px 13px; border-radius: 999px; font-size: 0.78rem; font-weight: 600;
+  transition: all 0.15s;
+}
+.tombol-keluar:hover { border-color: var(--merah); color: var(--merah); background: var(--merah-muda); }

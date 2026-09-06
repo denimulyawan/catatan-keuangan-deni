@@ -17,6 +17,24 @@ const KUNCI_EXTRA = {
   pengeluaran: 'kat_pengeluaran_ekstra'
 };
 
+/* =========================================================
+   🔐 LOGIN — UBAH USERNAME & PASSWORD DI SINI
+   ---------------------------------------------------------
+   Cari tulisan "admin" di bawah, ganti dengan username &
+   password yang Anda mau, lalu push ke GitHub.
+   ---------------------------------------------------------
+   ⚠️ CATATAN PENTING:
+   Ini proteksi RINGAN di sisi website (tanpa server). Kode
+   username/password bisa dibaca siapa pun lewat "Lihat
+   sumber halaman" / DevTools browser. Jadi ini cukup untuk
+   menjaga orang awam, BUKAN keamanan tingkat tinggi.
+   ========================================================= */
+const KONFIG_LOGIN = {
+  username: 'admin',        // ← ganti username Anda
+  password: 'admin123',     // ← ganti password Anda
+  sesiHari: 7               // berapa hari tetap masuk sebelum minta login lagi
+};
+
 function ambilKategoriEkstra(tipe) {
   try {
     const isi = JSON.parse(localStorage.getItem(KUNCI_EXTRA[tipe]) || '[]');
@@ -202,11 +220,13 @@ function initShell() {
   const aktif = document.body.dataset.halaman || '';
   const header = document.getElementById('site-header');
   const navBawah = document.getElementById('nav-bawah');
+  const tampilKeluar = statusLogin() && aktif !== 'login';
   if (header) {
     header.innerHTML =
       '<div class="container header-dalam">' +
       '<a class="brand" href="dashboard.html"><span class="brand-ikon">💰</span><span class="brand-teks">Catatan Keuangan</span></a>' +
       '<nav class="nav-atas">' + buatDaftarNav(aktif) + '</nav>' +
+      (tampilKeluar ? '<button type="button" class="tombol-keluar" id="tombol-keluar" title="Keluar">Keluar</button>' : '') +
       '</div>';
   }
   if (navBawah) {
@@ -438,5 +458,50 @@ const PALET_CHART = [
   '#65a30d', '#16a34a', '#0d9488', '#0891b2', '#4f46e5', '#be185d'
 ];
 
+/* ---------------- Login / proteksi halaman ---------------- */
+const KUNCI_SESI = 'ck_sesi';
+
+function statusLogin() {
+  try {
+    const data = JSON.parse(localStorage.getItem(KUNCI_SESI) || 'null');
+    return !!(data && data.u === KONFIG_LOGIN.username && Number(data.exp) > Date.now());
+  } catch (e) {
+    return false;
+  }
+}
+
+function buatSesi() {
+  const hari = Number(KONFIG_LOGIN.sesiHari) || 7;
+  localStorage.setItem(KUNCI_SESI, JSON.stringify({
+    u: KONFIG_LOGIN.username,
+    exp: Date.now() + hari * 86400000
+  }));
+}
+
+function hapusSesi() {
+  localStorage.removeItem(KUNCI_SESI);
+}
+
+/** Halaman login vs halaman lain; arahkan sesuai status masuk. */
+function proteksiHalaman() {
+  const halamanIni = document.body.dataset.halaman || '';
+  const masuk = statusLogin();
+  if (halamanIni === 'login') {
+    if (masuk) location.replace('dashboard.html');
+    return;
+  }
+  if (!masuk) location.replace('login.html');
+}
+
 /* ---------------- Inisialisasi shell ---------------- */
+proteksiHalaman();
 initShell();
+if (statusLogin() && document.body.dataset.halaman !== 'login') {
+  const tombolKeluar = document.getElementById('tombol-keluar');
+  if (tombolKeluar) {
+    tombolKeluar.addEventListener('click', function () {
+      hapusSesi();
+      location.replace('login.html');
+    });
+  }
+}

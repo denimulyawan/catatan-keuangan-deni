@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Masuk — Catatan Keuangan</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>💰</text></svg>">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body data-halaman="login" class="halaman-login-body">
+  <div class="kartu-login">
+    <div class="login-logo">💰</div>
+    <h1>Catatan Keuangan</h1>
+    <p class="muted">Silakan masuk untuk melanjutkan</p>
+
+    <form id="form-login" novalidate>
+      <div class="form-grup">
+        <label for="username-login">Username</label>
+        <input type="text" class="form-kontrol" id="username-login" autocomplete="username" placeholder="Username Anda" required>
+      </div>
+      <div class="form-grup">
+        <label for="password-login">Password</label>
+        <input type="password" class="form-kontrol" id="password-login" autocomplete="current-password" placeholder="Password Anda" required>
+      </div>
+      <div class="pesan-error" id="pesan-login" hidden></div>
+      <button type="submit" class="btn btn-primer btn-lebar" id="tombol-masuk">Masuk</button>
+    </form>
+
+    <p class="muted kecil catatan-login">
+      Username &amp; password bawaan bisa diubah di file
+      <code>js/app.js</code> — cari bagian <strong>KONFIG_LOGIN</strong>.
+    </p>
+  </div>
+
+  <div id="area-toast"></div>
+
+  <script src="js/app.js"></script>
+  <script src="js/login.js"></script>
+</body>
+</html>

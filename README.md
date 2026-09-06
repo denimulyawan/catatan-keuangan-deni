@@ -11,10 +11,13 @@ Data tersimpan di **Google Sheets**, dihubungkan lewat **Google Apps Script**, d
 
 | Halaman | Fungsi |
 |---|---|
+| **Login** | Gerbang masuk dengan username & password (bawaan `admin` / `admin123` — **ubah di `js/app.js` bagian `KONFIG_LOGIN`**) |
 | **Dashboard** | **Saldo per dompet**, KPI bulan ini (Pemasukan, Pengeluaran, Saldo), **filter dompet**, pie chart pengeluaran per kategori, line chart tren 6 bulan, transaksi terbaru |
 | **Input** | Catat **pemasukan / pengeluaran / transfer antar dompet** (tanggal, dompet, tipe, kategori, deskripsi, nominal) + tambah kategori sendiri + kelola dompet |
 | **Data** | Tabel semua transaksi; filter **bulan / kategori / dompet / tipe**, pencarian, edit & hapus |
 | **Budget** | Atur budget per kategori per bulan + progress bar dengan peringatan otomatis (>70% kuning, ≥100% merah) |
+
+> 🔐 **Catatan login:** karena aplikasi tanpa server, proteksinya ringan (username/password ada di kode frontend). Cukup untuk menjaga dari orang awam, **bukan** keamanan tingkat tinggi — jangan pakai password penting Anda.
 
 **Dompet / rekening:** Anda bisa punya banyak dompet (Tunai, rekening bank, e-wallet) dengan **Saldo Awal** masing-masing. Transfer antar dompet sendiri **tidak dihitung** sebagai pemasukan/pengeluaran.
 
@@ -29,7 +32,8 @@ Data tersimpan di **Google Sheets**, dihubungkan lewat **Google Apps Script**, d
 
 ```
 catatan-keuangan-deni/
-├── index.html          → halaman pembuka (otomatis ke Dashboard)
+├── index.html          → halaman pembuka (otomatis ke Login / Dashboard)
+├── login.html          → halaman masuk (username & password)
 ├── dashboard.html      → saldo dompet + KPI + chart
 ├── input.html          → form input (pemasukan/pengeluaran/transfer)
 ├── data.html           → tabel + filter + edit/hapus
@@ -37,7 +41,8 @@ catatan-keuangan-deni/
 ├── css/
 │   └── style.css       → semua gaya (mobile-first, responsif)
 ├── js/
-│   ├── app.js          → utilitas bersama (kategori, dompet, format Rp, navigasi, modal)
+│   ├── app.js          → 🔐 KONFIG_LOGIN (ganti username/password di sini)
+│   ├── login.js        → logika halaman login
 │   ├── api.js          → ⚙️ URL Apps Script + semua fungsi fetch
 │   ├── dashboard.js
 │   ├── input.js
@@ -131,6 +136,20 @@ Fungsi `pastikanStruktur` di backend otomatis: membuat sheet `Dompet`, menambah 
 ---
 
 ## ❓ Pertanyaan yang Sering Muncul
+
+**Bagaimana cara ganti username / password?**
+Buka `js/app.js`, cari bagian **`KONFIG_LOGIN`** (di bagian atas file), lalu ubah baris:
+```js
+username: 'admin',    // ← ganti username Anda
+password: 'admin123', // ← ganti password Anda
+```
+Simpan, lalu push ke GitHub (`git add -A && git commit -m "ganti password" && git push origin main`).
+
+**Lupa harus masuk terus tiap buka?**
+Secara bawaan setelah login Anda "diingat" selama 7 hari (atur lewat `sesiHari` di `KONFIG_LOGIN`). Klik tombol **Keluar** di pojok kanan atas untuk keluar.
+
+**Apakah login ini aman?**
+Ini proteksi ringan sisi website tanpa server — username/password tersimpan di kode yang bisa dibaca lewat DevTools browser. Jangan memakai password penting/email Anda.
 
 **Transaksi lama saya ke mana?**
 Tetap ada — otomatis tercatat ke dompet **`Tunai`**. Ubah lewat halaman Data → tombol Edit jika ingin pindah dompet.

@@ -20,7 +20,14 @@
     </noscript>
   </div>
   <script>
-    setTimeout(function () { location.replace('dashboard.html'); }, 600);
+    var sudahMasuk = false;
+    try {
+      var dataSesi = JSON.parse(localStorage.getItem('ck_sesi'));
+      sudahMasuk = !!(dataSesi && dataSesi.exp && Number(dataSesi.exp) > Date.now());
+    } catch (e) {}
+    setTimeout(function () {
+      location.replace(sudahMasuk ? 'dashboard.html' : 'login.html');
+    }, 600);
   </script>
 </body>
 </html>
