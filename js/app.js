@@ -236,8 +236,10 @@ function bukaModal(isiHTML) {
   document.body.appendChild(lapisan);
   document.body.classList.add('modal-terbuka');
   modalAktif = lapisan;
-  const tombolTutup = lapisan.querySelector('[data-tutup-modal]');
-  if (tombolTutup) tombolTutup.addEventListener('click', tutupModal);
+  // Semua tombol bertanda data-tutup-modal (✕ dan "Batal") menutup modal
+  lapisan.querySelectorAll('[data-tutup-modal]').forEach(function (el) {
+    el.addEventListener('click', tutupModal);
+  });
   return lapisan;
 }
 
