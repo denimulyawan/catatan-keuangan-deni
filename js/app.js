@@ -30,8 +30,8 @@ const KUNCI_EXTRA = {
    menjaga orang awam, BUKAN keamanan tingkat tinggi.
    ========================================================= */
 const KONFIG_LOGIN = {
-  username: 'admin',        // ← ganti username Anda
-  password: 'admin123',     // ← ganti password Anda
+  username: 'deni',        // ← ganti username Anda
+  password: 'ngapainliatliat',     // ← ganti password Anda
   sesiHari: 7               // berapa hari tetap masuk sebelum minta login lagi
 };
 
