@@ -297,28 +297,6 @@ async function initInput() {
   // Kelola dompet
   $('#tombol-kelola-dompet').addEventListener('click', bukaKelolaDompet);
 
-  // Panel tambah kategori baru
-  const tombolPanel = $('#tombol-kategori-baru');
-  const panel = $('#panel-kategori-baru');
-  tombolPanel.addEventListener('click', function () {
-    panel.hidden = !panel.hidden;
-    if (!panel.hidden) $('#nama-kategori-baru').focus();
-  });
-  $('#simpan-kategori-baru').addEventListener('click', function () {
-    const input = $('#nama-kategori-baru');
-    const nama = input.value.trim();
-    if (!nama) { input.focus(); return; }
-    if (tambahKategoriBaru(tipeTerpilih, nama)) {
-      bangunSelectKategori(nama);
-      toast('Kategori "' + nama + '" ditambahkan 🎉');
-    } else {
-      toast('Kategori "' + nama + '" sudah ada.', 'info');
-      bangunSelectKategori(nama);
-    }
-    input.value = '';
-    panel.hidden = true;
-  });
-
   // Submit & reset
   $('#form-transaksi').addEventListener('submit', simpanTransaksi);
   $('#tombol-reset').addEventListener('click', function () {

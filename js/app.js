@@ -5,17 +5,12 @@
 'use strict';
 
 /* ---------------- Kategori ---------------- */
-// Kategori bawaan (tetap). Kategori tambahan disimpan di localStorage
-// browser (bersifat per-perangkat, tanpa login).
+// Kategori bawaan (TETAP / hardcode — diubah manual di sini jika perlu).
 const KATEGORI_DEFAULT = {
   pemasukan: ['Gaji', 'Bonus'],
   pengeluaran: ['Makan', 'Transportasi', 'Tagihan', 'Hiburan', 'Pendidikan', 'Orang Tua']
 };
 const TIPE_TRANSAKSI = { PEMASUKAN: 'Pemasukan', PENGELUARAN: 'Pengeluaran' };
-const KUNCI_EXTRA = {
-  pemasukan: 'kat_pemasukan_ekstra',
-  pengeluaran: 'kat_pengeluaran_ekstra'
-};
 
 /* =========================================================
    🔐 LOGIN — UBAH USERNAME & PASSWORD DI SINI
@@ -35,32 +30,9 @@ const KONFIG_LOGIN = {
   sesiHari: 7               // berapa hari tetap masuk sebelum minta login lagi
 };
 
-function ambilKategoriEkstra(tipe) {
-  try {
-    const isi = JSON.parse(localStorage.getItem(KUNCI_EXTRA[tipe]) || '[]');
-    return Array.isArray(isi) ? isi : [];
-  } catch (e) { return []; }
-}
-
-function simpanKategoriEkstra(tipe, daftar) {
-  localStorage.setItem(KUNCI_EXTRA[tipe], JSON.stringify(daftar));
-}
-
-/** Daftar kategori lengkap untuk satu tipe (bawaan + tambahan). */
+/** Daftar kategori tetap untuk satu tipe (Pemasukan / Pengeluaran). */
 function getKategori(tipe) {
-  const dasar = KATEGORI_DEFAULT[tipe] || [];
-  return dasar.concat(ambilKategoriEkstra(tipe));
-}
-
-/** Tambah kategori baru; return true bila berhasil ditambahkan. */
-function tambahKategoriBaru(tipe, nama) {
-  nama = String(nama || '').trim();
-  if (!nama) return false;
-  if (getKategori(tipe).indexOf(nama) !== -1) return false;
-  const daftar = ambilKategoriEkstra(tipe);
-  daftar.push(nama);
-  simpanKategoriEkstra(tipe, daftar);
-  return true;
+  return (KATEGORI_DEFAULT[tipe] || []).slice();
 }
 
 /** Semua kategori unik (untuk filter di halaman Data). */

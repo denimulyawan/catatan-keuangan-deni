@@ -1,10 +1,10 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="id">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Input Transaksi â€” Catatan Keuangan</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>ðŸ’°</text></svg>">
+  <title>Input Transaksi — Catatan Keuangan</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>💰</text></svg>">
   <link rel="stylesheet" href="css/style.css?v=20260906a">
 </head>
 <body data-halaman="input">
@@ -30,9 +30,9 @@
           <input type="radio" name="tipe" id="tipe-pemasukan" value="Pemasukan" checked>
           <label class="pil-tipe" for="tipe-pemasukan"><span class="tanda tanda-plus">+</span> Pemasukan</label>
           <input type="radio" name="tipe" id="tipe-pengeluaran" value="Pengeluaran">
-          <label class="pil-tipe" for="tipe-pengeluaran"><span class="tanda tanda-minus">âˆ’</span> Pengeluaran</label>
+          <label class="pil-tipe" for="tipe-pengeluaran"><span class="tanda tanda-minus">−</span> Pengeluaran</label>
           <input type="radio" name="tipe" id="tipe-transfer" value="Transfer">
-          <label class="pil-tipe" for="tipe-transfer"><span class="tanda tanda-transfer">â‡„</span> Transfer</label>
+          <label class="pil-tipe" for="tipe-transfer"><span class="tanda tanda-transfer">⇄</span> Transfer</label>
         </div>
       </div>
 
@@ -49,17 +49,12 @@
       </div>
 
       <div class="form-grup">
-        <button type="button" class="link-tambah" id="tombol-kelola-dompet">âš™ï¸ Kelola dompet / rekening</button>
+        <button type="button" class="link-tambah" id="tombol-kelola-dompet">⚙️ Kelola dompet / rekening</button>
       </div>
 
       <div class="form-grup" id="grup-kategori">
         <label for="kategori">Kategori <span class="wajib">*</span></label>
         <select class="form-kontrol" id="kategori" required></select>
-        <button type="button" class="link-tambah" id="tombol-kategori-baru">ï¼‹ Tambah kategori baru</button>
-        <div id="panel-kategori-baru" class="panel-tambah" hidden>
-          <input type="text" class="form-kontrol" id="nama-kategori-baru" placeholder="Nama kategori baru, mis. Asuransi" maxlength="30">
-          <button type="button" class="btn btn-primer btn-kecil" id="simpan-kategori-baru">Simpan Kategori</button>
-        </div>
       </div>
 
       <div class="form-grup">
