@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Input Transaksi — Catatan Keuangan</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>💰</text></svg>">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body data-halaman="input">
+  <header id="site-header"></header>
+
+  <main class="container halaman halaman-sempit">
+    <div class="baris-judul">
+      <div>
+        <h1>Input Transaksi</h1>
+        <p class="muted">Catat pemasukan atau pengeluaran</p>
+      </div>
+    </div>
+
+    <form class="card" id="form-transaksi" novalidate>
+      <div class="form-grup">
+        <label for="tanggal">Tanggal <span class="wajib">*</span></label>
+        <input type="date" class="form-kontrol" id="tanggal" required>
+      </div>
+
+      <div class="form-grup">
+        <span class="label-grup">Tipe <span class="wajib">*</span></span>
+        <div class="segmen-tipe" id="segmen-tipe">
+          <input type="radio" name="tipe" id="tipe-pemasukan" value="Pemasukan" checked>
+          <label class="pil-tipe" for="tipe-pemasukan"><span class="tanda tanda-plus">+</span> Pemasukan</label>
+          <input type="radio" name="tipe" id="tipe-pengeluaran" value="Pengeluaran">
+          <label class="pil-tipe" for="tipe-pengeluaran"><span class="tanda tanda-minus">−</span> Pengeluaran</label>
+        </div>
+      </div>
+
+      <div class="form-grup">
+        <label for="kategori">Kategori <span class="wajib">*</span></label>
+        <select class="form-kontrol" id="kategori" required></select>
+        <button type="button" class="link-tambah" id="tombol-kategori-baru">＋ Tambah kategori baru</button>
+        <div id="panel-kategori-baru" class="panel-tambah" hidden>
+          <input type="text" class="form-kontrol" id="nama-kategori-baru" placeholder="Nama kategori baru, mis. Asuransi" maxlength="30">
+          <button type="button" class="btn btn-primer btn-kecil" id="simpan-kategori-baru">Simpan Kategori</button>
+        </div>
+      </div>
+
+      <div class="form-grup">
+        <label for="deskripsi">Deskripsi <span class="opsional">(opsional)</span></label>
+        <input type="text" class="form-kontrol" id="deskripsi" placeholder="Mis. Makan siang di warteg" maxlength="100">
+      </div>
+
+      <div class="form-grup">
+        <label for="nominal">Nominal (Rp) <span class="wajib">*</span></label>
+        <div class="grup-input">
+          <span class="grup-prefix">Rp</span>
+          <input type="text" class="form-kontrol kontrol-prefix" id="nominal" inputmode="numeric" placeholder="0" required>
+        </div>
+        <div class="pratinjau-nominal" id="pratinjau-nominal">Rp 0</div>
+      </div>
+
+      <button type="submit" class="btn btn-primer btn-lebar" id="tombol-simpan">Simpan Transaksi</button>
+      <button type="reset" class="btn btn-garis btn-lebar" id="tombol-reset">Bersihkan Formulir</button>
+    </form>
+
+    <section class="card">
+      <div class="card-judul">
+        <h2>Transaksi Terakhir</h2>
+        <span class="muted" id="jumlah-terakhir"></span>
+      </div>
+      <div id="daftar-terakhir">
+        <div class="kosong">Belum ada transaksi. Isi formulir di atas lalu klik <strong>Simpan Transaksi</strong>.</div>
+      </div>
+    </section>
+  </main>
+
+  <nav id="nav-bawah" class="nav-bawah"></nav>
+  <div id="area-toast"></div>
+
+  <script src="js/app.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/input.js"></script>
+</body>
+</html>

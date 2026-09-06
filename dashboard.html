@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard — Catatan Keuangan</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>💰</text></svg>">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body data-halaman="dashboard">
+  <header id="site-header"></header>
+
+  <main class="container halaman">
+    <div class="baris-judul">
+      <div>
+        <h1>Dashboard</h1>
+        <p class="muted">Ringkasan keuangan Anda</p>
+      </div>
+      <a href="input.html" class="btn btn-primer btn-kecil">＋ Transaksi Baru</a>
+    </div>
+
+    <div class="card pemilih-bulan" id="pilih-bulan"></div>
+
+    <section id="kpi-cards" class="grid-kpi" aria-label="Ringkasan bulan ini"></section>
+
+    <section class="grid-chart">
+      <div class="card kartu-chart">
+        <div class="card-judul">
+          <h2>Pengeluaran per Kategori</h2>
+          <span class="muted" id="judul-pie"></span>
+        </div>
+        <div class="tempat-chart">
+          <canvas id="chart-pie" aria-label="Pie chart pengeluaran per kategori" role="img"></canvas>
+          <div id="kosong-pie" class="kosong" hidden>Belum ada pengeluaran di bulan ini.</div>
+        </div>
+      </div>
+      <div class="card kartu-chart">
+        <div class="card-judul">
+          <h2>Tren 6 Bulan Terakhir</h2>
+          <span class="muted">Pemasukan vs Pengeluaran</span>
+        </div>
+        <div class="tempat-chart">
+          <canvas id="chart-line" aria-label="Line chart tren 6 bulan" role="img"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-judul">
+        <h2>Transaksi Terbaru</h2>
+        <a class="link" href="data.html">Lihat Semua →</a>
+      </div>
+      <div id="riwayat-dashboard"></div>
+    </section>
+  </main>
+
+  <nav id="nav-bawah" class="nav-bawah"></nav>
+  <div id="area-toast"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/dashboard.js"></script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+# Dependensi / build lokal (tidak dipakai di proyek ini, untuk jaga-jaga)
+node_modules/
+package-lock.json
+
+# Folder Vercel
+.vercel/
+
+# File sistem
+.DS_Store
+Thumbs.db
+*.log
